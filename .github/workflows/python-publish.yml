@@ -97,7 +97,7 @@ jobs:
         shell: bash
         run: |
           cd project && mkdir build && cd build
-          python ../configure.py --enable-optimize --sdks=cs2 --targets=x86_64
+          CC=gcc CXX=g++ python3 ../configure.py --enable-optimize --sdks=cs2 --targets=x86_64
           ambuild
 
       - name: Upload artifact

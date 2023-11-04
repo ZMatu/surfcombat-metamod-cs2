@@ -96,7 +96,7 @@ jobs:
       - name: Build
         shell: bash
         run: |
-          mkdir build && cd build
+         cd project && mkdir build && cd build
           CC=gcc CXX=g++ python3 ../configure.py --hl2sdk-root "../" -s cs2
           ambuild
 

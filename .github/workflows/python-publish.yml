@@ -1,4 +1,4 @@
-name: Build
+name: Build Linux
 
 on:
   push:
@@ -23,13 +23,13 @@ jobs:
         # Compile on Linux & Windows.
         os: 
           - ubuntu-20.04
-          - windows-latest
+        #  - windows-latest
 
         include:
           - os: ubuntu-20.04
             os_short: linux
-          - os: windows-latest
-            os_short: win
+        #  - os: windows-latest
+        #    os_short: win
     steps:
       # Setup Python for AMBuild.
       - name: Setup Python 3.10
@@ -96,8 +96,8 @@ jobs:
       - name: Build
         shell: bash
         run: |
-         cd project && mkdir build && cd build
-          CC=gcc CXX=g++ python3 ../configure.py --hl2sdk-root "../" -s cs2
+          cd project && mkdir build && cd build
+          python ../configure.py --enable-optimize --sdks=cs2 --targets=x86_64
           ambuild
 
       - name: Upload artifact

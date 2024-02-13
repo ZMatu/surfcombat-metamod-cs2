@@ -1,4 +1,4 @@
-#include "SURF.h"
+#include "surf.h"
 #include "utils/utils.h"
 #include "igameevents.h"
 #include "tier0/memdbgon.h"
@@ -15,7 +15,8 @@ void SURFPlayer::EnableGodMode()
 	if (pawn->m_bTakesDamage())
 	{
 		pawn->m_bTakesDamage(false);
-	}*/
+	}
+	*/
 }
 
 void SURFPlayer::OnStartTouchGround()
@@ -25,7 +26,6 @@ void SURFPlayer::OnStartTouchGround()
 
 void SURFPlayer::OnStopTouchGround()
 {
-
 }
 
 void SURFPlayer::OnAirAcceleratePre(Vector &wishdir, f32 &wishspeed, f32 &accel)
@@ -75,6 +75,7 @@ void SURFPlayer::UpdatePlayerModelAlpha()
 {
 	CCSPlayerPawn *pawn = this->GetPawn();
 	if (!pawn) return;
+
 	Color ogColor = pawn->m_clrRender();
 	if (pawn->m_clrRender().a() != 254)
 	{
@@ -96,14 +97,9 @@ void SURFPlayer::DisableNoclip()
 	this->inNoclip = false;
 }
 
-
-void SURFPlayer::TpHoldPlayerStill()
-{
-}
-
 void SURFPlayer::OnStartProcessMovement()
 {
-	//MovementPlayer::OnStartProcessMovement();
+	MovementPlayer::OnStartProcessMovement();
 	// Always ensure that the player has at least an ongoing jump.
 	// This is mostly to prevent crash, it's not a valid jump.
 
@@ -113,9 +109,14 @@ void SURFPlayer::OnStartProcessMovement()
 
 void SURFPlayer::OnStopProcessMovement()
 {
-	SURF::HUD::DrawSpeedPanel(this);
+	//SURF::HUD::DrawSpeedPanel(this);
 
-	//MovementPlayer::OnStopProcessMovement();
+	MovementPlayer::OnStopProcessMovement();
+}
+
+void SURFPlayer::ToggleHideLegs()
+{
+	this->hidePlayerLegs = !this->hidePlayerLegs;
 }
 
 void SURFPlayer::ToggleHide()

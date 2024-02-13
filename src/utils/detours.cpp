@@ -16,11 +16,13 @@ DECLARE_DETOUR(Host_Say, Detour_Host_Say, &modules::server);
 DECLARE_DETOUR(CBaseTrigger_StartTouch, Detour_CBaseTrigger_StartTouch, &modules::server);
 DECLARE_DETOUR(CBaseTrigger_EndTouch, Detour_CBaseTrigger_EndTouch, &modules::server);
 DECLARE_DETOUR(CCSGameRules_ctor, Detour_CCSGameRules_ctor, &modules::server);
-//DECLARE_DETOUR(RecvServerBrowserPacket, Detour_RecvServerBrowserPacket, &modules::steamnetworkingsockets);
+DECLARE_DETOUR(RecvServerBrowserPacket, Detour_RecvServerBrowserPacket, &modules::steamnetworkingsockets);
+
+DECLARE_MOVEMENT_DETOUR(ProcessMovement);
 
 /*
 DECLARE_MOVEMENT_DETOUR(GetMaxSpeed);
-DECLARE_MOVEMENT_DETOUR(ProcessMovement);
+
 DECLARE_MOVEMENT_DETOUR(PlayerMoveNew);
 DECLARE_MOVEMENT_DETOUR(CheckParameters);
 DECLARE_MOVEMENT_DETOUR(CanMove);
@@ -49,7 +51,7 @@ void InitDetours()
 	INIT_DETOUR(CBaseTrigger_StartTouch);
 	INIT_DETOUR(CBaseTrigger_EndTouch);
 	INIT_DETOUR(CCSGameRules_ctor);
-	//INIT_DETOUR(RecvServerBrowserPacket);
+	INIT_DETOUR(RecvServerBrowserPacket);
 }
 
 void FlushAllDetours()
@@ -108,40 +110,12 @@ void FASTCALL Detour_CBaseTrigger_StartTouch(CBaseTrigger *this_, CBaseEntity *p
 {
 	CBaseTrigger_StartTouch(this_, pOther);
 	
-	if (utils::IsEntityPawn(pOther))
-	{
-		if (IsEntTriggerMultiple((CBaseEntity *)this_))
-		{
-			if (IsTriggerStartZone(this_))
-			{
-				utils::PrintChat(pOther, "StartTouch: start zone trigger");
-			}
-			else if (IsTriggerEndZone(this_))
-			{
-				utils::PrintChat(pOther, "StartTouch: end zone trigger");
-			}
-		}
-	}
 }
 
 void FASTCALL Detour_CBaseTrigger_EndTouch(CBaseTrigger *this_, CBaseEntity *pOther)
 {
 	CBaseTrigger_EndTouch(this_, pOther);
 	
-	if (utils::IsEntityPawn(pOther))
-	{
-		if (IsEntTriggerMultiple((CBaseEntity *)this_))
-		{
-			if (IsTriggerStartZone(this_))
-			{
-				utils::PrintChat(pOther, "StartTouch: start zone trigger");
-			}
-			else if (IsTriggerEndZone(this_))
-			{
-				utils::PrintChat(pOther, "StartTouch: end zone trigger");
-			}
-		}
-	}
 }
 
 void *FASTCALL Detour_CCSGameRules_ctor(void *this_)
@@ -151,7 +125,7 @@ void *FASTCALL Detour_CCSGameRules_ctor(void *this_)
 
 	return result;
 }
-/*
+
 int FASTCALL Detour_RecvServerBrowserPacket(RecvPktInfo_t &info, void* pSock)
 {
 	int retValue = RecvServerBrowserPacket(info, pSock);
@@ -159,4 +133,4 @@ int FASTCALL Detour_RecvServerBrowserPacket(RecvPktInfo_t &info, void* pSock)
 	// 	info.m_adrFrom.m_IPv4Bytes.b1, info.m_adrFrom.m_IPv4Bytes.b2, info.m_adrFrom.m_IPv4Bytes.b3, info.m_adrFrom.m_IPv4Bytes.b4, 
 	// 	info.m_adrFrom.m_usPort, retValue, (char*)info.m_pPkt);
 	return retValue;
-}*/
+}

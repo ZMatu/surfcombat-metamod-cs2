@@ -3,13 +3,13 @@
 #include "common.h"
 #include "utlstring.h"
 #include "utlvector.h"
-#include "igameevents.h"
 #include "utils.h"
+
+#define CEL_PROCEED_EVENT_HANDLING 0x2A
 
 typedef void (*FnEventListenerCallback)(IGameEvent* event);
 
 class CGameEventListener;
-
 extern CUtlVector<CGameEventListener*> g_vecEventListeners;
 
 class CGameEventListener : public IGameEventListener2
@@ -24,11 +24,9 @@ public:
 	{
 	}
 
-	// FireEvent is called by EventManager if event just occured
-	// KeyValue memory will be freed by manager if not needed anymore
-	void FireGameEvent(IGameEvent* event) override
+	void FireGameEvent(IGameEvent* pEvent)
 	{
-		m_Callback(event);
+		m_Callback(pEvent);
 	}
 
 	const char* GetEventName() { return m_pszEventName; }
@@ -38,10 +36,13 @@ private:
 	const char* m_pszEventName;
 };
 
-extern IGameEventManager2* g_gameEventManager;
-
 void RegisterEventListeners();
 void UnregisterEventListeners();
+
+extern IServerGameClients* g_pSource2GameClients;
+extern CEntitySystem* g_pEntitySystem;
+extern CGlobalVars* gpGlobals;
+extern IGameEventManager2* g_gameEventManager;
 
 #define GAME_EVENT_F(_event)												\
 	void _event##_callback(IGameEvent*);									\

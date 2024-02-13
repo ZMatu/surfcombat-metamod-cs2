@@ -52,8 +52,14 @@
     <ClCompile Include="src\utils\utils.cpp">
       <Filter>UTILS</Filter>
     </ClCompile>
-    <ClCompile Include="src\utils\events.cpp">
+    <ClCompile Include="src\utils\ctimer.cpp">
       <Filter>UTILS</Filter>
+    </ClCompile>
+    <ClCompile Include="src\surf\sc_event_manager.cpp">
+      <Filter>SURF</Filter>
+    </ClCompile>
+    <ClCompile Include="src\surf\sc_features.cpp">
+      <Filter>SURF</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -77,8 +83,14 @@
     <ClInclude Include="src\surf\surf.h">
       <Filter>SURF</Filter>
     </ClInclude>
-    <ClInclude Include="src\utils\eventlistener.h">
+    <ClInclude Include="src\utils\ctimer.h">
       <Filter>UTILS</Filter>
+    </ClInclude>
+    <ClInclude Include="src\surf\sc_event_manager.h">
+      <Filter>SURF</Filter>
+    </ClInclude>
+    <ClInclude Include="src\surf\sc_features.h">
+      <Filter>SURF</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

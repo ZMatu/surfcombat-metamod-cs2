@@ -1,5 +1,5 @@
-
 #include "utils.h"
+#include "eventlistener.h"
 #include "convar.h"
 #include "strtools.h"
 #include "tier0/dbg.h"
@@ -42,8 +42,11 @@ bool interfaces::Initialize(ISmmAPI *ismm, char *error, size_t maxlen)
 	GET_V_IFACE_CURRENT(GetEngineFactory, interfaces::pEngine, IVEngineServer2, INTERFACEVERSION_VENGINESERVER);
 	GET_V_IFACE_CURRENT(GetServerFactory, interfaces::pServer, ISource2Server, INTERFACEVERSION_SERVERGAMEDLL);
 	GET_V_IFACE_CURRENT(GetEngineFactory, interfaces::pSchemaSystem, CSchemaSystem, SCHEMASYSTEM_INTERFACE_VERSION);
-	interfaces::pGameEventManager = (IGameEventManager2 *)(CALL_VIRTUAL(uintptr_t, offsets::GetEventManager, interfaces::pServer) - 8);
-	
+	GET_V_IFACE_CURRENT(GetEngineFactory, interfaces::pNetworkServerService, INetworkServerService, NETWORKSERVERSERVICE_INTERFACE_VERSION);
+
+	//g_gameEventManager = (IGameEventManager2*)(CALL_VIRTUAL(uintptr_t, offsets::GetEventManager, interfaces::pServer) - 8);
+	g_gameEventManager = static_cast<IGameEventManager2*>(CALL_VIRTUAL(IToolGameEventAPI*, offsets::GetEventManager, interfaces::pServer));
+
 	return true;
 }
 
@@ -58,7 +61,10 @@ bool utils::Initialize(ISmmAPI *ismm, char *error, size_t maxlen)
 	utils::UnlockConVars();
 	utils::UnlockConCommands();
 	
-	RESOLVE_SIG(modules::server, sigs::UTIL_ClientPrintFilter, UTIL_ClientPrintFilter);
+	//RESOLVE_SIG(modules::server, sigs::UTIL_ClientPrintFilter, UTIL_ClientPrintFilter);
+
+	RESOLVE_SIG(modules::server, sigs::UTIL_ClientPrintAll, addresses::UTIL_ClientPrintAll);
+	RESOLVE_SIG(modules::server, sigs::ClientPrint, addresses::ClientPrint);
 
 	RESOLVE_SIG(modules::server, sigs::NetworkStateChanged, schema::NetworkStateChanged);
 	RESOLVE_SIG(modules::server, sigs::StateChanged, schema::StateChanged);
@@ -76,6 +82,7 @@ bool utils::Initialize(ISmmAPI *ismm, char *error, size_t maxlen)
 void utils::Cleanup()
 {
 	FlushAllDetours();
+	//UnregisterEventListeners();
 }
 
 CGlobalVars *utils::GetServerGlobals()
@@ -235,32 +242,42 @@ CPlayerSlot utils::GetEntityPlayerSlot(CBaseEntity *entity)
 	vsnprintf(buffer, sizeof(buffer), format, args); \
 	va_end(args);
 
-void utils::PrintConsole(CBaseEntity *entity, const char *format, ...)
+void utils::ClientPrintAll(int hud_dest, const char* msg)
 {
-	FORMAT_STRING(buffer);
-	CSingleRecipientFilter filter(utils::GetEntityPlayerSlot(entity).Get());
-	UTIL_ClientPrintFilter(filter, HUD_PRINTCONSOLE, buffer, "", "", "", "");
+	addresses::UTIL_ClientPrintAll(hud_dest, msg, nullptr, nullptr, nullptr, nullptr);
+	ConMsg("%s\n", msg);
 }
 
-void utils::PrintChat(CBaseEntity *entity, const char *format, ...)
+void utils::ClientPrint(CBasePlayerController* player, int hud_dest, const char* msg)
 {
-	FORMAT_STRING(buffer);
-	CSingleRecipientFilter filter(utils::GetEntityPlayerSlot(entity).Get());
-	UTIL_ClientPrintFilter(filter, HUD_PRINTTALK, buffer, "", "", "", "");
+	if (player)
+		addresses::ClientPrint(player, hud_dest, msg, nullptr, nullptr, nullptr, nullptr);
+	else
+		ConMsg("%s\n", msg);
 }
 
-void utils::PrintCentre(CBaseEntity *entity, const char *format, ...)
+void utils::PrintConsole(CBasePlayerController* player, const char *format, ...)
 {
 	FORMAT_STRING(buffer);
-	CSingleRecipientFilter filter(utils::GetEntityPlayerSlot(entity).Get());
-	UTIL_ClientPrintFilter(filter, HUD_PRINTCENTER, buffer, "", "", "", "");
+	utils::ClientPrint(player, MsgDest::HUD_PRINTCONSOLE, buffer);
 }
 
-void utils::PrintAlert(CBaseEntity *entity, const char *format, ...)
+void utils::PrintChat(CBasePlayerController* player, const char *format, ...)
 {
 	FORMAT_STRING(buffer);
-	CSingleRecipientFilter filter(utils::GetEntityPlayerSlot(entity).Get());
-	UTIL_ClientPrintFilter(filter, HUD_PRINTALERT, buffer, "", "", "", "");
+	utils::ClientPrint(player, MsgDest::HUD_PRINTTALK, buffer);
+}
+
+void utils::PrintCentre(CBasePlayerController* player, const char *format, ...)
+{
+	FORMAT_STRING(buffer);
+	utils::ClientPrint(player, MsgDest::HUD_PRINTCENTER, buffer);
+}
+
+void utils::PrintAlert(CBasePlayerController* player, const char *format, ...)
+{
+	FORMAT_STRING(buffer);
+	utils::ClientPrint(player, MsgDest::HUD_PRINTALERT, buffer);
 }
 
 void utils::PrintHTMLCentre(CBaseEntity *entity, const char *format, ...)
@@ -270,7 +287,7 @@ void utils::PrintHTMLCentre(CBaseEntity *entity, const char *format, ...)
 
 	FORMAT_STRING(buffer);
 
-	IGameEvent *event = interfaces::pGameEventManager->CreateEvent("show_survival_respawn_status");
+	IGameEvent *event = g_gameEventManager->CreateEvent("show_survival_respawn_status");
 	if (!event) return;
 	event->SetString("loc_token", buffer);
 	event->SetInt("duration", 5);
@@ -279,48 +296,44 @@ void utils::PrintHTMLCentre(CBaseEntity *entity, const char *format, ...)
 	CPlayerSlot slot = controller->entindex() - 1;
 	IGameEventListener2 *listener = utils::GetLegacyGameEventListener(slot);
 	listener->FireGameEvent(event);
-	interfaces::pGameEventManager->FreeEvent(event);
+	g_gameEventManager->FreeEvent(event);
 }
 
 void utils::PrintConsoleAll(const char *format, ...)
 {
 	FORMAT_STRING(buffer);
-	CBroadcastRecipientFilter filter;
-	UTIL_ClientPrintFilter(filter, HUD_PRINTCONSOLE, buffer, "", "", "", "");
+	utils::ClientPrintAll(MsgDest::HUD_PRINTCONSOLE, buffer);
 }
 
 void utils::PrintChatAll(const char *format, ...)
 {
 	FORMAT_STRING(buffer);
-	CBroadcastRecipientFilter filter;
-	UTIL_ClientPrintFilter(filter, HUD_PRINTTALK, buffer, "", "", "", "");
+	utils::ClientPrintAll(MsgDest::HUD_PRINTTALK, buffer);
 }
 
 void utils::PrintCentreAll(const char *format, ...)
 {
 	FORMAT_STRING(buffer);
-	CBroadcastRecipientFilter filter;
-	UTIL_ClientPrintFilter(filter, HUD_PRINTCENTER, buffer, "", "", "", "");
+	utils::ClientPrintAll(MsgDest::HUD_PRINTCENTER, buffer);
 }
 
 void utils::PrintAlertAll(const char *format, ...)
 {
 	FORMAT_STRING(buffer);
-	CBroadcastRecipientFilter filter;
-	UTIL_ClientPrintFilter(filter, HUD_PRINTALERT, buffer, "", "", "", "");
+	utils::ClientPrintAll(MsgDest::HUD_PRINTALERT, buffer);
 }
 
 void utils::PrintHTMLCentreAll(const char *format, ...)
 {
 	FORMAT_STRING(buffer);
 
-	IGameEvent *event = interfaces::pGameEventManager->CreateEvent("show_survival_respawn_status");
+	IGameEvent *event = g_gameEventManager->CreateEvent("show_survival_respawn_status");
 	if (!event) return;
 	event->SetString("loc_token", buffer);
 	event->SetInt("duration", 5);
 	event->SetInt("userid", -1);
 
-	interfaces::pGameEventManager->FireEvent(event);
+	g_gameEventManager->FireEvent(event);
 }
 
 f32 utils::NormalizeDeg(f32 a)

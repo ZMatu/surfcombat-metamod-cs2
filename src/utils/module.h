@@ -1,73 +1,50 @@
-#pragma once
-#include "dbg.h"
-#include "interface.h"
-#include "strtools.h"
-#include "plat.h"
-
+#ifndef MODULE_H
+#define MODULE_H
 #ifdef _WIN32
-#include <Psapi.h>
+#pragma once
 #endif
+
+#include <string>
+#include <vector>
+#include "memaddr.h"
 
 class CModule
 {
 public:
-	CModule(const char *path, const char *module) :
-		m_pszModule(module), m_pszPath(path)
+	struct ModuleSections_t
 	{
-		char szModule[MAX_PATH];
+		ModuleSections_t(void) = default;
+		ModuleSections_t(const std::string_view svSectionName, uintptr_t pSectionBase, size_t nSectionSize) :
+			m_svSectionName(svSectionName), m_pSectionBase(pSectionBase), m_nSectionSize(nSectionSize) {}
 
-		V_snprintf(szModule, MAX_PATH, "%s%s%s%s%s", Plat_GetGameDirectory(), path, MODULE_PREFIX, m_pszModule, MODULE_EXT);
-
-		m_hModule = dlmount(szModule);
-
-		if (!m_hModule)
-			Error("Could not find %s\n", szModule);
-
-#ifdef _WIN32
-		MODULEINFO m_hModuleInfo;
-		GetModuleInformation(GetCurrentProcess(), m_hModule, &m_hModuleInfo, sizeof(m_hModuleInfo));
-
-		m_base = (void *)m_hModuleInfo.lpBaseOfDll;
-		m_size = m_hModuleInfo.SizeOfImage;
-#else
-		if (int e = GetModuleInformation(szModule, &m_base, &m_size))
-			Error("Failed to get module info for %s, error %d\n", szModule, e);
-#endif
-	}
-
-	void *FindSignature(const byte *pData, size_t length)
-	{
-		unsigned char *pMemory;
-		void *return_addr = nullptr;
-
-		pMemory = (byte *)m_base;
-
-		for (size_t i = 0; i < m_size; i++)
+		bool IsSectionValid(void) const
 		{
-			size_t Matches = 0;
-			while (*(pMemory + i + Matches) == pData[Matches] || pData[Matches] == '\x2A')
-			{
-				Matches++;
-				if (Matches == length)
-					return_addr = (void *)(pMemory + i);
-			}
+			return m_nSectionSize != 0;
 		}
 
-		return return_addr;
-	}
+		std::string    m_svSectionName;           // Name of section.
+		uintptr_t m_pSectionBase{};          // Start address of section.
+		size_t    m_nSectionSize{};          // Size of section.
+	};
 
-	// Will break with string containing \0 !!!
-	void *FindSignature(const byte *pData)
-	{
-		size_t iSigLength = V_strlen((const char *)pData);
+	CModule(const std::string_view moduleName);
+	CModule(const CMemory addr);
 
-		return FindSignature(pData, iSigLength);
-	}
+	CMemory FindPatternSIMD(const uint8_t* szPattern, const char* szMask, const ModuleSections_t* moduleSection = nullptr) const;
+	CMemory FindPatternSIMD(const std::string_view svPattern, const ModuleSections_t* moduleSection = nullptr) const;
 
+	const ModuleSections_t GetSectionByName(const std::string_view svSectionName) const;
+	uintptr_t        GetModuleBase(void) const;
+	std::string_view GetModuleName(void) const;
 
-	const char *m_pszModule;
-	const char* m_pszPath;
-	HINSTANCE m_hModule;
-	void* m_base;
-	size_t m_size;
+private:
+	void Init();
+	void LoadSections();
+
+	ModuleSections_t         m_ExecutableCode;
+	std::string              m_svModuleName;
+	uintptr_t                m_pModuleBase{};
+	std::vector<ModuleSections_t> m_vModuleSections;
 };
+
+#endif // MODULE_H
